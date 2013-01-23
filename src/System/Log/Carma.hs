@@ -12,6 +12,8 @@ import Data.Aeson
 import Data.Aeson.Types (Parser, parseMaybe)
 import Data.List
 import Data.Maybe
+import Data.Text.Lazy (pack)
+import Data.Text.Lazy.Encoding (encodeUtf8)
 import Data.String (fromString)
 import Text.Regex.Posix ((=~))
 
@@ -56,7 +58,7 @@ parseValue :: String -> Maybe (String, Value)
 parseValue line = extract $ line =~ logRegex where
     extract:: [[String]] -> Maybe (String, Value)
     extract [[_, name, msg]] = do
-        val <- decode $ fromString msg
+        val <- decode . encodeUtf8 . pack $ msg
         return (name, val)
     extract _ = Nothing
 
