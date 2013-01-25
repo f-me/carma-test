@@ -11,10 +11,9 @@ category:            Testing
 build-type:          Simple
 cabal-version:       >=1.8
 
-executable carma-test
+library
   hs-source-dirs: src
-  main-is: carma-test.hs
-  other-modules:
+  exposed-modules:
     Network.HTTP.Request
     System.Log.Carma
   build-depends:
@@ -31,3 +30,35 @@ executable carma-test
     regex-posix == 0.95.*,
     text == 0.11.*,
     transformers == 0.3.*
+
+executable carma-test-run
+  hs-source-dirs: tools
+  main-is: carma-test-run.hs
+  build-depends:
+    base == 4.6.*,
+    aeson == 0.6.*,
+    carma-test,
+    text == 0.11.*,
+    transformers == 0.3.*
+
+executable carma-filter
+  hs-source-dirs: tools
+  main-is: carma-filter.hs
+  build-depends:
+    base == 4.6.*,
+    aeson == 0.6.*,
+    carma-test,
+    text == 0.11.*,
+    transformers == 0.3.*
+
+executable carma-log-diff
+  hs-source-dirs: tools
+  main-is: carma-log-diff.hs
+  build-depends:
+    base == 4.6.*,
+    aeson == 0.6.*,
+    bytestring == 0.10.*,
+    carma-test,
+    text == 0.11.*,
+    transformers == 0.3.*,
+    unordered-containers == 0.2.*
