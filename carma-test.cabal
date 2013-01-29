@@ -37,6 +37,7 @@ executable carma-test-run
   build-depends:
     base == 4.6.*,
     aeson == 0.6.*,
+    bytestring == 0.10.*,
     carma-test,
     text == 0.11.*,
     transformers == 0.3.*
@@ -59,6 +60,8 @@ executable carma-log-diff
     aeson == 0.6.*,
     bytestring == 0.10.*,
     carma-test,
+    carma-sync == 0.1.2.*,
+    mtl == 2.1.*,
     text == 0.11.*,
     transformers == 0.3.*,
     unordered-containers == 0.2.*

@@ -5,19 +5,23 @@ module Main (
 import Control.Monad.IO.Class
 import Control.Concurrent (threadDelay)
 import Data.Aeson
+import qualified Data.ByteString.Char8 as C8
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
+import qualified Data.Text.Encoding as T
 
 import Network.HTTP.Request as R
 import System.Log.Carma
 
+readFileUtf8 :: FilePath -> IO T.Text
+readFileUtf8 f = fmap T.decodeUtf8 $ C8.readFile f
+
 main :: IO ()
 main = do
-    cts <- T.readFile "log/db.test.log"
+    cts <- readFileUtf8 "log/db.test.log"
     mapM_ run $ parseLog $ T.unpack $ cts
     where
         run :: LogMessage -> IO ()
-        run l = run' l >> threadDelay 100000 where
+        run l = run' l >> threadDelay 10000 where
             run' :: LogMessage -> IO ()
             run' (LogMessage _ (LogRequest user url method dat)) =
                 R.withLogin "http://localhost:8000" user pass $
