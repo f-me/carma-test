@@ -62,7 +62,7 @@ parseLog = mapMaybe parseMessage . lines
 parseMessage :: String -> Maybe LogMessage
 parseMessage line = do
     (name, val) <- parseValue line
-    if any ($name) [(== "reqlogger"), (== "resplogger"), isPrefixOf "update/trigger/"]
+    if any ($name) [(== "detail/req"), (== "detail/resp"), isPrefixOf "update/detail/trigger/"]
         then parseMaybe parseJSON val
         else Nothing
 
