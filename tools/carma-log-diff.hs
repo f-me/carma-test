@@ -60,8 +60,13 @@ main = getArgs >>= main' where
             compareRequests :: LogEntry -> LogEntry -> Diff
             compareRequests (LogRequest luser lurl lmethod ldata) (LogRequest ruser rurl rmethod rdata)
                 | (luser, lurl, lmethod) == (ruser, rurl, rmethod) = do
-                    tell [fromString $ "User: " ++ luser ++ ", URI: " ++ lurl ++ ", method: " ++ lmethod]
+                    tell [fromString $ "User: " ++ fromMaybe "<null>" luser ++ ", URI: " ++ lurl ++ ", method: " ++ lmethod]
                     diffValues ldata rdata
+                | otherwise = do
+                    tell [fromString $ "Requests inequal:"]
+                    tell [fromString $ "User: " ++ fromMaybe "<null>" luser ++ ", URI: " ++ lurl ++ ", method: " ++ lmethod]
+                    tell [fromString $ "User: " ++ fromMaybe "<null>" ruser ++ ", URI: " ++ rurl ++ ", method: " ++ rmethod]
+                    markDiff
                 | otherwise = error "Requests inequal"
             compareRequests _ _ = error "No request in head of group"
 

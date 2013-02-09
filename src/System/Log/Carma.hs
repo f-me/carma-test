@@ -27,7 +27,7 @@ data LogMessage = LogMessage {
 
 -- | Log entry
 data LogEntry =
-    LogRequest String String String Value |
+    LogRequest (Maybe String) String String Value |
     -- ^ User, URL, method and data
     LogResponse Value |
     -- ^ Response value
