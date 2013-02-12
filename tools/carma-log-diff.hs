@@ -59,7 +59,7 @@ main = getArgs >>= main' where
 
             compareRequests :: LogEntry -> LogEntry -> Diff
             compareRequests (LogRequest luser lurl lmethod ldata) (LogRequest ruser rurl rmethod rdata)
-                | (luser, lurl, lmethod) == (ruser, rurl, rmethod) = do
+                | (lurl, lmethod) == (rurl, rmethod) = do
                     tell [fromString $ "User: " ++ fromMaybe "<null>" luser ++ ", URI: " ++ lurl ++ ", method: " ++ lmethod]
                     diffValues ldata rdata
                 | otherwise = do

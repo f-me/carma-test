@@ -21,35 +21,17 @@ readFileUtf8 f = fmap T.decodeUtf8 $ C8.readFile f
 main :: IO ()
 main = withFile "log/db.test.log" ReadMode loop where
     loop :: Handle -> IO ()
-    loop h = do
-        b <- hIsEOF h
-        when (not b) $ do
-            line <- fmap T.decodeUtf8 $ C8.hGetLine h
-            maybe (return ()) run $ parseMessage $ T.unpack line
-            loop h
+    loop = R.withoutLogin "http://localhost:8000" . loop' where
+        loop' h = do
+            b <- liftIO $ hIsEOF h
+            when (not b) $ do
+                line <- liftIO $  fmap T.decodeUtf8 $ C8.hGetLine h
+                maybe (return ()) run $ parseMessage $ T.unpack line
+                loop' h
 
-    run :: LogMessage -> IO ()
-    run = run' 0 where
-        run' :: Int -> LogMessage -> IO ()
-        run' n l = catch (runRequest l) (retry n) where
-            retry :: Int -> SomeException -> IO ()
-            retry n e
-                | n >= 10 = do
-                    putStrLn "Maximum retries exceeded"
-                    throw e
-                | otherwise = do
-                    putStrLn $ "Failed request with " ++ show e
-                    threadDelay 1000000
-                    run' (succ n) l
-
-    runRequest :: LogMessage -> IO ()
-    runRequest (LogMessage _ (LogRequest (Just user) url method dat)) =
-        R.withLogin "http://localhost:8000" user pass $
+        run (LogMessage _ (LogRequest (Just user) url method dat)) =
             printValue $ R.req method url dat
-            where
-                pass = case user of
-                    "admin" -> ""
-                    _ -> user
-    runRequest _ = return ()
-    printValue :: MonadIO m => m Value -> m ()
-    printValue act = act >>= liftIO . print
+        run _ = return ()
+
+        printValue :: MonadIO m => m Value -> m ()
+        printValue act = act >>= liftIO . print

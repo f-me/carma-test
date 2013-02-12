@@ -7,7 +7,7 @@ module Network.HTTP.Request (
     req,
     put,
     post,
-    withLogin
+    withLogin, withoutLogin
     ) where
 
 import Control.Exception (ErrorCall(..))
@@ -73,6 +73,11 @@ withLogin url name pass act = withSocketsDo $ do
     runResourceT $ browse man $ flip runReaderT url $ do
         login name pass
         act
+
+withoutLogin :: String -> ReaderT String BrowserAction a -> IO a
+withoutLogin url act = withSocketsDo $ do
+    man <- newManager def
+    runResourceT $ browse man $ runReaderT act url
 
 decodeJSON :: (MonadResource m, MonadBaseControl IO m, FromJSON r) => Response ByteString -> GenericBrowserAction m r
 decodeJSON = maybe (monadThrow $ ErrorCall "Can't decode JSON") return . decode . responseBody
