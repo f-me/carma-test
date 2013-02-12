@@ -94,24 +94,6 @@ groupRequests = groupRequestsOn id
 groupLinedRequests :: [(Int, LogMessage)] -> [[(Int, LogMessage)]]
 groupLinedRequests = groupRequestsOn snd
 
---groupRequests :: [LogMessage] -> [[LogMessage]]
---groupRequests = go . dropWhile (not . isRequest . logEntry) where
---    go :: [LogMessage] -> [[LogMessage]]
---    go ((msg@(LogMessage thId req)) : msgs) = thisGroup : go tailMsgs where
---        (beforeresp, (resp : afterresp)) = break myResponse msgs
---        (myBefore, otherBefore) = partition ((== thId) . logThreadId) beforeresp
-
---        thisGroup = msg : (myBefore ++ [resp])
---        tailMsgs = otherBefore ++ afterresp
-
---        myResponse (LogMessage thId' (LogResponse _)) = thId == thId'
---        myResponse _ = False
---    go [] = []
-
---    isRequest :: LogEntry -> Bool
---    isRequest (LogRequest {}) = True
---    isRequest _ = False
-
 parseValue :: String -> Maybe (String, Value)
 parseValue line = extract $ line =~ logRegex where
     extract:: [[String]] -> Maybe (String, Value)

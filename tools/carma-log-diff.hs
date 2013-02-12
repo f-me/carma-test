@@ -36,17 +36,22 @@ main = getArgs >>= main' where
     main' [l, r] = do
         tbls <- loadTables "resources/site-config/models" "resources/site-config/field-groups.json"
         let
+            -- | Keys to remove from comparison
+            dontCompare :: [T.Text]
+            dontCompare = ["temperature"] ++ timeColumns
+
             timeColumns = map (fromString . columnName) $
                 filter ((== "timestamp") . columnType) $ concatMap tableFields tbls
-            -- | Remove times from comparing
-            removeTimes :: Value -> Value
-            removeTimes (Object v) = Object $ HM.filterWithKey notTime v where
-                notTime :: T.Text -> Value -> Bool
-                notTime k _ = k `notElem` timeColumns
+
+            -- | Remove keys
+            removeKeys :: [T.Text] -> Value -> Value
+            removeKeys ks (Object v) = Object $ HM.filterWithKey notKey v where
+                notKey :: T.Text -> Value -> Bool
+                notKey k _ = k `notElem` ks
 
             diffValues :: Value -> Value -> Diff
             diffValues l r = maybe (return ()) (\(l', r') -> tell (map textValue [l', r']) >> markDiff) $
-                (compareValues `on` removeTimes) l r
+                (compareValues `on` (removeKeys dontCompare)) l r
 
             runCompareGroup :: [(Int, LogEntry)] -> [(Int, LogEntry)] -> [T.Text]
             runCompareGroup ls rs = if isDiff then output else [] where
