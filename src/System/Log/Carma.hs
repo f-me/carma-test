@@ -6,9 +6,10 @@ module System.Log.Carma (
     LogEntry(..),
     parseLog,
     parseMessage,
-    groupRequests
+    groupRequestsOn, groupRequests, groupLinedRequests
     ) where
 
+import Control.Arrow
 import Control.Applicative
 import Data.Aeson
 import Data.Aeson.Types (Parser, parseMaybe)
@@ -55,8 +56,8 @@ instance FromJSON LogEntry where
     parseJSON _ = empty
 
 -- | Read messages from log
-parseLog :: String -> [LogMessage]
-parseLog = mapMaybe parseMessage . lines
+parseLog :: String -> [(Int, LogMessage)]
+parseLog = map (second fromJust) . filter (isJust . snd) . zip [1..] . map parseMessage . lines
 
 -- | Read one message
 parseMessage :: String -> Maybe LogMessage
@@ -69,14 +70,14 @@ parseMessage line = do
 -- | Group requests
 -- Every request is followed with several trigger messages and ends with response
 -- Function returns list of such groups
-groupRequests :: [LogMessage] -> [[LogMessage]]
-groupRequests = go . dropWhile (not . isRequest . logEntry) where
-    go :: [LogMessage] -> [[LogMessage]]
-    go ((msg@(LogMessage thId req)) : msgs) = thisGroup : go tailMsgs where
-        (beforeresp, (resp : afterresp)) = break myResponse msgs
-        (myBefore, otherBefore) = partition ((== thId) . logThreadId) beforeresp
+groupRequestsOn :: (a -> LogMessage) -> [a] -> [[a]]
+groupRequestsOn f = go . dropWhile (not . isRequest . logEntry . f) where
+    go (x : xs) = if null respAndRest then [] else thisGroup : go tailMsgs where
+        (msg@(LogMessage thId req)) = f x
+        (beforeresp, (respAndRest@(~(resp : afterresp)))) = break (myResponse . f) xs
+        (myBefore, otherBefore) = partition ((== thId) . logThreadId . f) beforeresp
 
-        thisGroup = msg : (myBefore ++ [resp])
+        thisGroup = x : (myBefore ++ [resp])
         tailMsgs = otherBefore ++ afterresp
 
         myResponse (LogMessage thId' (LogResponse _)) = thId == thId'
@@ -86,6 +87,30 @@ groupRequests = go . dropWhile (not . isRequest . logEntry) where
     isRequest :: LogEntry -> Bool
     isRequest (LogRequest {}) = True
     isRequest _ = False
+
+groupRequests :: [LogMessage] -> [[LogMessage]]
+groupRequests = groupRequestsOn id
+
+groupLinedRequests :: [(Int, LogMessage)] -> [[(Int, LogMessage)]]
+groupLinedRequests = groupRequestsOn snd
+
+--groupRequests :: [LogMessage] -> [[LogMessage]]
+--groupRequests = go . dropWhile (not . isRequest . logEntry) where
+--    go :: [LogMessage] -> [[LogMessage]]
+--    go ((msg@(LogMessage thId req)) : msgs) = thisGroup : go tailMsgs where
+--        (beforeresp, (resp : afterresp)) = break myResponse msgs
+--        (myBefore, otherBefore) = partition ((== thId) . logThreadId) beforeresp
+
+--        thisGroup = msg : (myBefore ++ [resp])
+--        tailMsgs = otherBefore ++ afterresp
+
+--        myResponse (LogMessage thId' (LogResponse _)) = thId == thId'
+--        myResponse _ = False
+--    go [] = []
+
+--    isRequest :: LogEntry -> Bool
+--    isRequest (LogRequest {}) = True
+--    isRequest _ = False
 
 parseValue :: String -> Maybe (String, Value)
 parseValue line = extract $ line =~ logRegex where

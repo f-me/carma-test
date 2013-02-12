@@ -4,6 +4,7 @@ module Main (
     main
     ) where
 
+import Control.Arrow
 import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.State
@@ -47,15 +48,22 @@ main = getArgs >>= main' where
             diffValues l r = maybe (return ()) (\(l', r') -> tell (map textValue [l', r']) >> markDiff) $
                 (compareValues `on` removeTimes) l r
 
-            runCompareGroup :: [LogEntry] -> [LogEntry] -> [T.Text]
+            runCompareGroup :: [(Int, LogEntry)] -> [(Int, LogEntry)] -> [T.Text]
             runCompareGroup ls rs = if isDiff then output else [] where
                 ((_, output), isDiff) = runState (runWriterT $ compareGroup ls rs) False
 
-            compareGroup :: [LogEntry] -> [LogEntry] -> Diff
-            compareGroup (lreq : ltail) (rreq : rtail) = do
-                compareRequests lreq rreq
-                compareTriggers (init ltail) (init rtail)
-                compareResponses (last ltail) (last rtail)
+            compareGroup :: [(Int, LogEntry)] -> [(Int, LogEntry)] -> Diff
+            compareGroup ls rs = do
+                tell [fromString $ "==============="]
+                tell [fromString $ "at lines " ++ show lline ++ "/" ++ show rline]
+                compareGroup' (map snd ls) (map snd rs)
+                where
+                    lline = fst $ head ls
+                    rline = fst $ head rs
+                    compareGroup' (lreq : ltail) (rreq : rtail) = do
+                        compareRequests lreq rreq
+                        compareTriggers (init ltail) (init rtail)
+                        compareResponses (last ltail) (last rtail)
 
             compareRequests :: LogEntry -> LogEntry -> Diff
             compareRequests (LogRequest luser lurl lmethod ldata) (LogRequest ruser rurl rmethod rdata)
@@ -107,5 +115,5 @@ main = getArgs >>= main' where
             lr = HM.map fromJust $ HM.filter isJust $
                 HM.intersectionWith (\ x y -> if x == y then Nothing else Just (x, y)) l r
 
-    readLog :: String -> IO [[LogEntry]]
-    readLog = fmap (map (map logEntry) . groupRequests . parseLog . T.unpack) . T.readFile
+    readLog :: String -> IO [[(Int, LogEntry)]]
+    readLog = fmap (map (map (second logEntry)) . groupLinedRequests . parseLog . T.unpack) . T.readFile
