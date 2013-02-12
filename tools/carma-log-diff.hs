@@ -9,6 +9,7 @@ import Control.Monad
 import Control.Monad.Writer
 import Control.Monad.State
 import Data.Aeson
+import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy as B (toStrict)
 import qualified Data.HashMap.Strict as HM
 import Data.Function (on)
@@ -30,10 +31,22 @@ type Diff = WriterT [T.Text] (State Bool) ()
 markDiff :: Diff
 markDiff = lift $ put True
 
+readFileUtf8 :: FilePath -> IO T.Text
+readFileUtf8 f = fmap T.decodeUtf8 $ C8.readFile f
+
 main :: IO ()
 main = getArgs >>= main' where
     main' :: [String] -> IO ()
     main' [l, r] = do
+        hSetEncoding stdout utf8
+        main'' l r T.putStrLn
+    main' [l, r, o] = withFile o WriteMode $ \h -> do
+        hSetEncoding h utf8
+        main'' l r (T.hPutStrLn h)
+    main' _ = putStrLn "Usage: carma-log-diff left right"
+
+    main'' :: String -> String -> (T.Text -> IO ()) -> IO ()
+    main'' l r outText = do
         tbls <- loadTables "resources/site-config/models" "resources/site-config/field-groups.json"
         let
             -- | Keys to remove from comparison
@@ -102,9 +115,7 @@ main = getArgs >>= main' where
 
         [lmsgs, rmsgs] <- mapM readLog [l, r]
 
-        hSetEncoding stdout utf8
-        mapM_ T.putStrLn $ concat $ zipWith runCompareGroup lmsgs rmsgs
-    main' _ = putStrLn "Usage: carma-log-diff left right"
+        mapM_ outText $ concat $ zipWith runCompareGroup lmsgs rmsgs
 
     textValue :: Value -> T.Text
     textValue = T.decodeUtf8 . B.toStrict . encode
@@ -121,4 +132,4 @@ main = getArgs >>= main' where
                 HM.intersectionWith (\ x y -> if x == y then Nothing else Just (x, y)) l r
 
     readLog :: String -> IO [[(Int, LogEntry)]]
-    readLog = fmap (map (map (second logEntry)) . groupLinedRequests . parseLog . T.unpack) . T.readFile
+    readLog = fmap (map (map (second logEntry)) . groupLinedRequests . parseLog . T.unpack) . readFileUtf8
