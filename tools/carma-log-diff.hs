@@ -66,13 +66,13 @@ main = getArgs >>= main' where
             diffValues l r = maybe (return ()) (\(l', r') -> tell (map textValue [l', r']) >> markDiff) $
                 (compareValues `on` (removeKeys dontCompare)) l r
 
-            runCompareGroup :: [(Int, LogEntry)] -> [(Int, LogEntry)] -> [T.Text]
-            runCompareGroup ls rs = if isDiff then output else [] where
-                ((_, output), isDiff) = runState (runWriterT $ compareGroup ls rs) False
+            runCompareGroup :: Int -> [(Int, LogEntry)] -> [(Int, LogEntry)] -> [T.Text]
+            runCompareGroup i ls rs = if isDiff then output else [] where
+                ((_, output), isDiff) = runState (runWriterT $ compareGroup i ls rs) False
 
-            compareGroup :: [(Int, LogEntry)] -> [(Int, LogEntry)] -> Diff
-            compareGroup ls rs = do
-                tell [fromString $ "==============="]
+            compareGroup :: Int -> [(Int, LogEntry)] -> [(Int, LogEntry)] -> Diff
+            compareGroup i ls rs = do
+                tell [fromString $ "========\t" ++ show i ++ "  ========"]
                 tell [fromString $ "at lines " ++ show lline ++ "/" ++ show rline]
                 compareGroup' (map snd ls) (map snd rs)
                 where
@@ -115,7 +115,7 @@ main = getArgs >>= main' where
 
         [lmsgs, rmsgs] <- mapM readLog [l, r]
 
-        mapM_ outText $ concat $ zipWith runCompareGroup lmsgs rmsgs
+        mapM_ outText $ concat $ zipWith3 runCompareGroup [1..] lmsgs rmsgs
 
     textValue :: Value -> T.Text
     textValue = T.decodeUtf8 . B.toStrict . encode
