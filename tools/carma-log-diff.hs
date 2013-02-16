@@ -51,7 +51,7 @@ main = getArgs >>= main' where
         let
             -- | Keys to remove from comparison
             dontCompare :: [T.Text]
-            dontCompare = ["temperature"] ++ timeColumns
+            dontCompare = ["temperature", "assignedTo"] ++ timeColumns
 
             timeColumns = map (fromString . columnName) $
                 filter ((== "timestamp") . columnType) $ concatMap tableFields tbls
