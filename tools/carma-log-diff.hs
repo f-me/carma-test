@@ -102,7 +102,16 @@ main = getArgs >>= main' where
                 | length ls == length rs = zipWithM_ compareTrigger ls rs
                 | otherwise = do
                     tell [fromString (show (length ls) ++ " vs " ++ show (length rs) ++ " triggers")]
+                    tell [fromString ">>>"]
+                    mapM_ dumpTrigger ls
+                    tell [fromString "<<<"]
+                    mapM_ dumpTrigger rs
+                    tell [fromString ">>>"]
                     markDiff
+
+            dumpTrigger :: LogEntry -> Diff
+            dumpTrigger (LogTrigger name dat) =
+                tell [fromString $ name ++ ": " ++ T.unpack (textValue dat)]
 
             compareTrigger :: LogEntry -> LogEntry -> Diff
             compareTrigger (LogTrigger lname ldata) (LogTrigger rname rdata) = do
