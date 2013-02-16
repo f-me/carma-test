@@ -58,9 +58,10 @@ main = getArgs >>= main' where
 
             -- | Remove keys
             removeKeys :: [T.Text] -> Value -> Value
-            removeKeys ks (Object v) = Object $ HM.filterWithKey notKey v where
+            removeKeys ks (Object v) = Object $ HM.map (removeKeys ks) $ HM.filterWithKey notKey v where
                 notKey :: T.Text -> Value -> Bool
                 notKey k _ = k `notElem` ks
+            removeKeys ks v = v
 
             diffValues :: Value -> Value -> Diff
             diffValues l r = maybe (return ()) (\(l', r') -> tell (map textValue [l', r']) >> markDiff) $
@@ -100,7 +101,7 @@ main = getArgs >>= main' where
             compareTriggers ls rs
                 | length ls == length rs = zipWithM_ compareTrigger ls rs
                 | otherwise = do
-                    tell [fromString (show (length ls) ++ " vs " ++ show (length rs) ++ "triggers")]
+                    tell [fromString (show (length ls) ++ " vs " ++ show (length rs) ++ " triggers")]
                     markDiff
 
             compareTrigger :: LogEntry -> LogEntry -> Diff
@@ -129,7 +130,8 @@ main = getArgs >>= main' where
             l' = (HM.difference l r) `HM.union` (HM.map fst lr)
             r' = (HM.difference r l) `HM.union` (HM.map snd lr)
             lr = HM.map fromJust $ HM.filter isJust $
-                HM.intersectionWith (\ x y -> if x == y then Nothing else Just (x, y)) l r
+                HM.intersectionWith (\ x y -> if x == y then Nothing else compareValues x y) l r
+    compareValues x y = Just (x, y)
 
     readLog :: String -> IO [[(Int, LogEntry)]]
     readLog = fmap (map (map (second logEntry)) . groupLinedRequests . parseLog . T.unpack) . readFileUtf8

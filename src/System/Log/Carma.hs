@@ -52,7 +52,7 @@ instance FromJSON LogEntry where
                 (inner .: "method") <*>
                 (inner .: "body")
         resp = LogResponse <$> (v .: "response")
-        trig = LogTrigger <$> (v .: "name") <*> (v .: "data")
+        trig = LogTrigger <$> (v .: "trigger") <*> (v .: "data")
     parseJSON _ = empty
 
 -- | Read messages from log
